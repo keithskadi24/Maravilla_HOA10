@@ -1,0 +1,161 @@
+  # Elastic Search
+  - name: Security-Enhanced Linux to permissive
+    selinux:
+      policy: targeted
+      state: permissive
+    when: ansible_os_family == 'RedHat'
+
+  - name: Max Map Count
+    sysctl:
+      name: vm.max_map_count
+      value: "262144"
+      sysctl_set: yes
+
+  - name: User Addition
+    user:
+      name: elasticsearch
+      comment: elasticsearch user
+
+  - name: Download Repository (Elastic Search)
+    file:
+      path: /data
+      state: directory
+      mode: 0777
+
+  - name: Elastic Search Download
+    get_url:
+      url: https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-6.8.15.tar.gz
+      dest: /data/elasticsearch-6.8.15.tar.gz
+      mode: 0755
+
+  - name: Elastic Search Unarchive
+    unarchive:
+      src: /data/elasticsearch-6.8.15.tar.gz
+      dest: /data/
+      remote_src: yes
+      creates: /data/elasticsearch-6.8.15/config/elasticsearch.yml
+
+  - name: Elastic Search Service File
+    template:
+      src: elasticsearch.service.j2
+      dest: /etc/systemd/system/elasticsearch.service
+      mode: 0644
+
+  - name: Elastic Search Configuration
+    template:
+      src: elasticsearch.yml.j2
+      dest: /data/elasticsearch-6.8.15/config/elasticsearch.yml
+      mode: 0660
+
+  - name: Elastic Search Repository
+    file:
+      path: /data/elasticsearch-6.8.15
+      owner: elasticsearch
+      group: elasticsearch
+      recurse: yes
+
+  - name: Daemon/systemd Reload
+    systemd:
+      daemon_reload: yes
+
+  - name: Elastic Search Start
+    service:
+      name: elasticsearch
+      state: started
+      enabled: yes
+
+  #Kibana
+  - name: Download Repository (Kibana)
+    file:
+      path: /data
+      state: directory
+      mode: 0777
+
+  - name: Kibana Download
+    get_url:
+      url: https://artifacts.elastic.co/downloads/kibana/kibana-6.8.15-linux-x86_64.tar.gz
+      dest: /data/kibana-6.8.15-linux-x86_64.tar.gz
+      mode: 0755
+
+  - name: Kibana Unarchive
+    unarchive:
+      src: /data/kibana-6.8.15-linux-x86_64.tar.gz
+      dest: /data/
+      remote_src: yes
+      creates: /data/kibana-6.8.15-linux-x86_64/config/kibana.yml
+
+  - name: Kibana Service File
+    template:
+      src: kibana.service.j2
+      dest: /etc/systemd/system/kibana.service
+      mode: 0644
+
+  - name: Kibana Configuration
+    template:
+      src: kibana.yml.j2
+      dest: /data/kibana-6.8.15-linux-x86_64/config/kibana.yml
+      mode: 0660
+
+  - name: Daemon/systemd Reload
+    systemd:
+      daemon_reload: yes
+
+  - name: Kibana Start
+    service:
+      name: kibana
+      state: started
+      enabled: yes
+
+  #Logstash
+  - name: Download Repository (Logstash)
+    file:
+      path: /data
+      state: directory
+      mode: "u=rwx,g=rwx,o=rwx"
+
+  - name: Logstash Download
+    get_url:
+      url: https://artifacts.elastic.co/downloads/logstash/logstash-6.8.15.tar.gz
+      dest: /data/logstash-6.8.15.tar.gz
+      mode: 0755
+
+  - name: Logstash Unarchive
+    unarchive:
+      src: /data/logstash-6.8.15.tar.gz
+      dest: /data/
+      remote_src: yes
+      creates: /data/logstash-6.8.15/conf.d/inputs.conf
+
+  - name: Logstash Service File
+    template:
+      src: logstash.service.j2
+      dest: /etc/systemd/system/logstash.service
+      mode: 0644
+
+  - name: Start/Stop Logstash Script
+    template:
+      src: start.sh.j2
+      dest: /data/logstash-6.8.15/start.sh
+      mode: 0754
+
+  - name: Logstash Configuration Repository
+    file:
+      path: /data/logstash-6.8.15/conf.d
+      state: directory
+      mode: 0777
+
+  - name: Logstash Configuration Update
+    template:
+      src: inputs.conf.j2
+      dest: /data/logstash-6.8.15/conf.d/inputs.conf
+      mode: 0660
+
+  - name: Daemon/systemd Reload
+    systemd:
+      daemon_reload: yes
+
+  - name: Logstash Start
+    service:
+      name: logstash
+      state: started
+      enabled: yes
